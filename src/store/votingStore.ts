@@ -3,134 +3,26 @@ import type { User, Category, VoteRecord, TeamScore, PersonScore } from '../type
 import { ApiService } from '../services/apiService';
 
 export const INITIAL_GROUPS: string[] = [
-  'Los Vampiros de Tecnología',
-  'Las Brujas de Gestión Humana',
-  'Fantasmas de Operaciones',
-  'Zombis de Contabilidad',
-  'Monstruos de Mercadeo y Ventas',
-  'Hechiceros de Finanzas',
+  'Hotel Transilvania',
+  'El juego del Calamar',
+  'Galaxia',
+  'Día de los Muertos',
+  'Los Simpsons',
 ];
 
 export const INITIAL_USERS: User[] = [
   {
-    id: 'usr-1',
+    id: 'usr-admin',
     username: 'admin',
-    password: '123',
-    name: 'Sebastián Administrador',
+    password: 'Atiempo2025+',
+    name: 'Camilo Muñoz',
     role: 'admin',
     groupName: 'Comité Organizador',
     hasVoted: false,
     avatar: '🎃',
     gender: 'M',
   },
-  {
-    id: 'usr-2',
-    username: 'carolina.gh',
-    password: '123',
-    name: 'Carolina Morales',
-    role: 'gh',
-    groupName: 'Las Brujas de Gestión Humana',
-    hasVoted: false,
-    avatar: '🧙‍♀️',
-    gender: 'F',
-  },
-  {
-    id: 'usr-3',
-    username: 'sofia.rh',
-    password: '123',
-    name: 'Sofía Álvarez',
-    role: 'gh',
-    groupName: 'Las Brujas de Gestión Humana',
-    hasVoted: false,
-    avatar: '✨',
-    gender: 'F',
-  },
-  {
-    id: 'usr-4',
-    username: 'carlos.dev',
-    password: '123',
-    name: 'Carlos Mendoza',
-    role: 'user',
-    groupName: 'Los Vampiros de Tecnología',
-    hasVoted: false,
-    avatar: '🧛‍♂️',
-    gender: 'M',
-  },
-  {
-    id: 'usr-5',
-    username: 'laura.ops',
-    password: '123',
-    name: 'Laura Restrepo',
-    role: 'user',
-    groupName: 'Fantasmas de Operaciones',
-    hasVoted: false,
-    avatar: '👻',
-    gender: 'F',
-  },
-  {
-    id: 'usr-6',
-    username: 'jorge.conta',
-    password: '123',
-    name: 'Jorge Gómez',
-    role: 'user',
-    groupName: 'Zombis de Contabilidad',
-    hasVoted: false,
-    avatar: '🧟‍♂️',
-    gender: 'M',
-  },
-  {
-    id: 'usr-7',
-    username: 'diana.mkt',
-    password: '123',
-    name: 'Diana Torres',
-    role: 'user',
-    groupName: 'Monstruos de Mercadeo y Ventas',
-    hasVoted: false,
-    avatar: '🧛‍♀️',
-    gender: 'F',
-  },
-  {
-    id: 'usr-8',
-    username: 'andres.fin',
-    password: '123',
-    name: 'Andrés Botero',
-    role: 'user',
-    groupName: 'Hechiceros de Finanzas',
-    hasVoted: false,
-    avatar: '🧙‍♂️',
-    gender: 'M',
-  },
-  {
-    id: 'usr-9',
-    username: 'paola.ops',
-    password: '123',
-    name: 'Paola Ramos',
-    role: 'user',
-    groupName: 'Fantasmas de Operaciones',
-    hasVoted: false,
-    avatar: '🐈‍⬛',
-    gender: 'F',
-  },
-  {
-    id: 'usr-10',
-    username: 'felipe.infra',
-    password: '123',
-    name: 'Felipe Vélez',
-    role: 'user',
-    groupName: 'Los Vampiros de Tecnología',
-    hasVoted: false,
-    avatar: '🐺',
-    gender: 'M',
-  },
 ];
-
-const INITIAL_FEMALE_CANDIDATES = INITIAL_USERS
-  .filter((u) => u.role !== 'admin' && u.gender === 'F')
-  .map((u) => u.name);
-
-const INITIAL_MALE_CANDIDATES = INITIAL_USERS
-  .filter((u) => u.role !== 'admin' && u.gender === 'M')
-  .map((u) => u.name);
 
 export const INITIAL_CATEGORIES: Category[] = [
   {
@@ -202,7 +94,7 @@ export const INITIAL_CATEGORIES: Category[] = [
     title: '9. Mejor Disfraz de la Empresa (Mujer)',
     description: 'Votación individual para elegir a la colaboradora con el disfraz, caracterización y maquillaje más impresionante.',
     type: 'individual',
-    options: [...INITIAL_FEMALE_CANDIDATES],
+    options: [],
     icon: '👑',
   },
   {
@@ -210,17 +102,18 @@ export const INITIAL_CATEGORIES: Category[] = [
     title: '10. Mejor Disfraz de la Empresa (Hombre)',
     description: 'Votación individual para elegir al colaborador con el disfraz, personificación e ingenio más destacado del concurso.',
     type: 'individual',
-    options: [...INITIAL_MALE_CANDIDATES],
+    options: [],
     icon: '🎩',
   },
 ];
 
+// Almacenamiento version 3 para limpiar datos antiguos y cargar solo Camilo Muñoz y los 5 grupos oficiales
 const STORAGE_KEYS = {
-  USERS: 'atiempo_halloween_users_v2',
-  CATEGORIES: 'atiempo_halloween_categories_v2',
-  GROUPS: 'atiempo_halloween_groups_v2',
-  VOTES: 'atiempo_halloween_votes_v2',
-  CURRENT_USER_ID: 'atiempo_halloween_current_user_id_v2',
+  USERS: 'atiempo_halloween_users_v3',
+  CATEGORIES: 'atiempo_halloween_categories_v3',
+  GROUPS: 'atiempo_halloween_groups_v3',
+  VOTES: 'atiempo_halloween_votes_v3',
+  CURRENT_USER_ID: 'atiempo_halloween_current_user_id_v3',
 };
 
 export class VotingStorage {
@@ -435,7 +328,6 @@ export function useVotingState() {
     // 1. Intentar inicio de sesión en AWS Cognito
     const cloudRes = await ApiService.login(trimmedUsername, trimmedPassword);
     if (cloudRes.success && cloudRes.user) {
-      // Guardar usuario en caché local
       const existing = users.filter((u) => u.id !== cloudRes.user!.id);
       const updated = [...existing, cloudRes.user!];
       VotingStorage.saveUsers(updated);
@@ -446,7 +338,7 @@ export function useVotingState() {
     // 2. Si AWS reporta error pero el usuario existe en base local (modo híbrido/offline)
     const localUser = users.find((u) => u.username.toLowerCase().trim() === trimmedUsername);
     if (localUser) {
-      const expectedPassword = localUser.password || '123';
+      const expectedPassword = localUser.password || 'Atiempo2025+';
       if (trimmedPassword === expectedPassword) {
         login(localUser.id);
         return { success: true, user: localUser };
@@ -467,7 +359,6 @@ export function useVotingState() {
 
   // Crear usuario (Sincronizado en AWS + LocalStorage)
   const createUser = async (newUser: Omit<User, 'id' | 'hasVoted'>) => {
-    // 1. Crear en AWS
     const cloudRes = await ApiService.createUser(newUser);
     const userToSave: User = cloudRes.success && cloudRes.user
       ? cloudRes.user
@@ -477,7 +368,6 @@ export function useVotingState() {
           hasVoted: false,
         };
 
-    // 2. Guardar en almacenamiento local
     const updatedUsers = [...users, userToSave];
     VotingStorage.saveUsers(updatedUsers);
 
@@ -491,10 +381,8 @@ export function useVotingState() {
 
   // Cambiar contraseña de cualquier usuario (Sincronizado en AWS Cognito + LocalStorage)
   const updateUserPassword = async (userId: string, newPassword: string) => {
-    // 1. Notificar a AWS Cognito
     await ApiService.updateUserPassword(userId, newPassword);
 
-    // 2. Actualizar en almacenamiento local
     const updatedUsers = users.map((u) => {
       if (u.id === userId) {
         return { ...u, password: newPassword.trim() };
@@ -506,7 +394,6 @@ export function useVotingState() {
 
   // Crear categoría (Sincronizado en AWS DynamoDB + LocalStorage)
   const createCategory = async (newCat: Omit<Category, 'id'>) => {
-    // 1. Guardar en AWS
     const cloudRes = await ApiService.createCategory(newCat);
     const catToSave: Category = cloudRes.success && cloudRes.category
       ? cloudRes.category
@@ -516,7 +403,6 @@ export function useVotingState() {
           options: [...newCat.options],
         };
 
-    // 2. Guardar en almacenamiento local
     const updated = [...categories, catToSave];
     VotingStorage.saveCategories(updated);
     return catToSave;
@@ -553,13 +439,11 @@ export function useVotingState() {
       }
     }
 
-    // 1. Enviar a AWS
     const cloudRes = await ApiService.submitVote(currentUser.id, selections);
     if (!cloudRes.success && cloudRes.error && !cloudRes.error.includes('No se pudo conectar')) {
       throw new Error(cloudRes.error);
     }
 
-    // 2. Guardar en almacenamiento local
     const record: VoteRecord = {
       userId: currentUser.id,
       timestamp: new Date().toISOString(),
@@ -570,10 +454,7 @@ export function useVotingState() {
 
   // Reiniciar votos (Sincronizado en AWS + LocalStorage)
   const clearVotesOnly = async () => {
-    // 1. Limpiar en AWS
     await ApiService.resetVotes();
-
-    // 2. Limpiar en almacenamiento local
     VotingStorage.clearVotesOnly();
   };
 

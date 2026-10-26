@@ -42,12 +42,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 }) => {
   // Estado para crear Usuario
   const [newUsername, setNewUsername] = useState('');
-  const [newPassword, setNewPassword] = useState('123');
+  const [newPassword, setNewPassword] = useState('Atiempo2025+');
   const [showNewUserPassword, setShowNewUserPassword] = useState(false);
   const [newName, setNewName] = useState('');
   const [newGender, setNewGender] = useState<'M' | 'F'>('M');
   const [newRole, setNewRole] = useState<Role>('user');
-  const [newGroup, setNewGroup] = useState(availableGroups[0] || 'Los Vampiros de Tecnología');
+  const [newGroup, setNewGroup] = useState(availableGroups[0] || 'Hotel Transilvania');
   const [customGroup, setCustomGroup] = useState('');
   const [userSuccessMessage, setUserSuccessMessage] = useState<string | null>(null);
 
