@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { User, Category, VoteRecord, TeamScore, PersonScore } from '../types';
+import { ApiService } from '../services/apiService';
 
 export const INITIAL_GROUPS: string[] = [
   'Los Vampiros de Tecnología',
@@ -123,7 +124,6 @@ export const INITIAL_USERS: User[] = [
   },
 ];
 
-// Opciones individuales congeladas (snapshot) de los usuarios registrados al inicio (sin admin)
 const INITIAL_FEMALE_CANDIDATES = INITIAL_USERS
   .filter((u) => u.role !== 'admin' && u.gender === 'F')
   .map((u) => u.name);
@@ -215,7 +215,6 @@ export const INITIAL_CATEGORIES: Category[] = [
   },
 ];
 
-// Helper seguro para localStorage en el navegador
 const STORAGE_KEYS = {
   USERS: 'atiempo_halloween_users_v2',
   CATEGORIES: 'atiempo_halloween_categories_v2',
@@ -262,10 +261,9 @@ export class VotingStorage {
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(INITIAL_USERS));
     }
 
-    // Sincronizar dinámicamente hasVoted con los votos reales existentes
     return users.map((u) => ({
       ...u,
-      hasVoted: votedUserIds.has(u.id),
+      hasVoted: votedUserIds.has(u.id) || Boolean(u.hasVoted),
     }));
   }
 
@@ -327,7 +325,6 @@ export class VotingStorage {
     votes.push(record);
     localStorage.setItem(STORAGE_KEYS.VOTES, JSON.stringify(votes));
 
-    // Actualizar usuarios en localStorage
     const users = this.getUsers().map((u) => {
       if (u.id === record.userId) {
         return { ...u, hasVoted: true };
@@ -350,9 +347,7 @@ export class VotingStorage {
 
   static clearVotesOnly() {
     if (typeof window === 'undefined') return;
-    // 1. Vaciar votos
     localStorage.setItem(STORAGE_KEYS.VOTES, JSON.stringify([]));
-    // 2. Marcar todos los usuarios con hasVoted: false
     const rawUsers = localStorage.getItem(STORAGE_KEYS.USERS);
     let usersList: User[] = INITIAL_USERS;
     if (rawUsers) {
@@ -364,12 +359,10 @@ export class VotingStorage {
     }
     const resetUsers = usersList.map((u) => ({ ...u, hasVoted: false }));
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(resetUsers));
-    // 3. Notificar a toda la aplicación
     window.dispatchEvent(new Event('voting-storage-changed'));
   }
 }
 
-// Hook de React para sincronizar el estado reactivo con localStorage
 export function useVotingState() {
   const [users, setUsers] = useState<User[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -395,6 +388,24 @@ export function useVotingState() {
 
   useEffect(() => {
     sync();
+
+    // Sincronizar en segundo plano con AWS API Gateway
+    const fetchCloudData = async () => {
+      const [cloudCategories, cloudUsers] = await Promise.all([
+        ApiService.getCategories(),
+        ApiService.getUsers(),
+      ]);
+
+      if (cloudCategories && cloudCategories.length > 0) {
+        VotingStorage.saveCategories(cloudCategories);
+      }
+      if (cloudUsers && cloudUsers.length > 0) {
+        VotingStorage.saveUsers(cloudUsers);
+      }
+    };
+
+    fetchCloudData().catch((err) => console.log('AWS cloud sync notice:', err));
+
     const handleStorageChange = () => sync();
     window.addEventListener('voting-storage-changed', handleStorageChange);
     window.addEventListener('storage', handleStorageChange);
@@ -404,66 +415,86 @@ export function useVotingState() {
     };
   }, []);
 
-  // Determinar currentUser sincronizado dinámicamente con hasVoted
   const currentUserRaw = users.find((u) => u.id === currentUserId) || null;
   const currentUser: User | null = currentUserRaw
     ? {
         ...currentUserRaw,
-        hasVoted: votes.some((v) => v.userId === currentUserRaw.id),
+        hasVoted: votes.some((v) => v.userId === currentUserRaw.id) || Boolean(currentUserRaw.hasVoted),
       }
     : null;
 
-  // Login por ID
   const login = (userId: string) => {
     VotingStorage.setCurrentUserId(userId);
   };
 
-  // Login con Usuario y Contraseña
-  const loginWithCredentials = (username: string, passwordInput: string) => {
+  // Login con Cognito + AWS API Gateway (con contingencia en LocalStorage)
+  const loginWithCredentials = async (username: string, passwordInput: string) => {
     const trimmedUsername = username.toLowerCase().trim();
     const trimmedPassword = passwordInput.trim();
 
-    const user = users.find((u) => u.username.toLowerCase().trim() === trimmedUsername);
-
-    if (!user) {
-      return { success: false, error: 'Usuario no registrado en la base de datos.' };
+    // 1. Intentar inicio de sesión en AWS Cognito
+    const cloudRes = await ApiService.login(trimmedUsername, trimmedPassword);
+    if (cloudRes.success && cloudRes.user) {
+      // Guardar usuario en caché local
+      const existing = users.filter((u) => u.id !== cloudRes.user!.id);
+      const updated = [...existing, cloudRes.user!];
+      VotingStorage.saveUsers(updated);
+      login(cloudRes.user.id);
+      return { success: true, user: cloudRes.user };
     }
 
-    const expectedPassword = user.password || '123';
-    if (trimmedPassword !== expectedPassword) {
+    // 2. Si AWS reporta error pero el usuario existe en base local (modo híbrido/offline)
+    const localUser = users.find((u) => u.username.toLowerCase().trim() === trimmedUsername);
+    if (localUser) {
+      const expectedPassword = localUser.password || '123';
+      if (trimmedPassword === expectedPassword) {
+        login(localUser.id);
+        return { success: true, user: localUser };
+      }
       return { success: false, error: 'Contraseña incorrecta. Intenta nuevamente.' };
     }
 
-    login(user.id);
-    return { success: true, user };
+    return {
+      success: false,
+      error: cloudRes.error || 'Usuario o contraseña no válidos.',
+    };
   };
 
   const logout = () => {
+    ApiService.clearToken();
     VotingStorage.setCurrentUserId(null);
   };
 
-  // Crear usuario (Admin) -> Se persiste en localStorage
-  const createUser = (newUser: Omit<User, 'id' | 'hasVoted'>) => {
-    const id = `usr-${Date.now()}`;
-    const user: User = {
-      ...newUser,
-      id,
-      hasVoted: false,
-    };
-    const updatedUsers = [...users, user];
+  // Crear usuario (Sincronizado en AWS + LocalStorage)
+  const createUser = async (newUser: Omit<User, 'id' | 'hasVoted'>) => {
+    // 1. Crear en AWS
+    const cloudRes = await ApiService.createUser(newUser);
+    const userToSave: User = cloudRes.success && cloudRes.user
+      ? cloudRes.user
+      : {
+          ...newUser,
+          id: `usr-${Date.now()}`,
+          hasVoted: false,
+        };
+
+    // 2. Guardar en almacenamiento local
+    const updatedUsers = [...users, userToSave];
     VotingStorage.saveUsers(updatedUsers);
 
-    // Si el grupo del usuario no existe en la lista de grupos, guardarlo
     if (newUser.groupName && !groups.includes(newUser.groupName)) {
       const updatedGroups = [...groups, newUser.groupName];
       VotingStorage.saveGroups(updatedGroups);
     }
 
-    return user;
+    return userToSave;
   };
 
-  // Administrador cambia la contraseña de cualquier usuario
-  const updateUserPassword = (userId: string, newPassword: string) => {
+  // Cambiar contraseña de cualquier usuario (Sincronizado en AWS Cognito + LocalStorage)
+  const updateUserPassword = async (userId: string, newPassword: string) => {
+    // 1. Notificar a AWS Cognito
+    await ApiService.updateUserPassword(userId, newPassword);
+
+    // 2. Actualizar en almacenamiento local
     const updatedUsers = users.map((u) => {
       if (u.id === userId) {
         return { ...u, password: newPassword.trim() };
@@ -473,21 +504,24 @@ export function useVotingState() {
     VotingStorage.saveUsers(updatedUsers);
   };
 
-  // Crear categoría (Admin) -> Se persiste en localStorage con snapshot de opciones
-  const createCategory = (newCat: Omit<Category, 'id'>) => {
-    const id = `cat-${Date.now()}`;
-    const cat: Category = {
-      ...newCat,
-      id,
-      // Las opciones quedan congeladas (snapshot) en este momento
-      options: [...newCat.options],
-    };
-    const updated = [...categories, cat];
+  // Crear categoría (Sincronizado en AWS DynamoDB + LocalStorage)
+  const createCategory = async (newCat: Omit<Category, 'id'>) => {
+    // 1. Guardar en AWS
+    const cloudRes = await ApiService.createCategory(newCat);
+    const catToSave: Category = cloudRes.success && cloudRes.category
+      ? cloudRes.category
+      : {
+          ...newCat,
+          id: `cat-${Date.now()}`,
+          options: [...newCat.options],
+        };
+
+    // 2. Guardar en almacenamiento local
+    const updated = [...categories, catToSave];
     VotingStorage.saveCategories(updated);
-    return cat;
+    return catToSave;
   };
 
-  // Agregar grupo nuevo (Admin) -> Se persiste en localStorage
   const addGroup = (groupName: string) => {
     const trimmed = groupName.trim();
     if (!trimmed || groups.includes(trimmed)) return;
@@ -495,8 +529,8 @@ export function useVotingState() {
     VotingStorage.saveGroups(updated);
   };
 
-  // Enviar Voto
-  const submitVote = (selections: Record<string, string>) => {
+  // Enviar Voto (Sincronizado en AWS + LocalStorage)
+  const submitVote = async (selections: Record<string, string>) => {
     if (!currentUser) throw new Error('No hay usuario autenticado');
     if (currentUser.role === 'admin') {
       throw new Error('El Administrador no puede votar en el concurso, solo supervisar.');
@@ -506,39 +540,46 @@ export function useVotingState() {
     for (const [catId, selected] of Object.entries(selections)) {
       const cat = categories.find((c) => c.id === catId);
       if (cat) {
-        // Regla 1: En categorías grupales, NO puede votar por su propio grupo
-        if (cat.type === 'group') {
-          if (selected.toLowerCase().trim() === currentUser.groupName.toLowerCase().trim()) {
-            throw new Error(`¡No está permitido votar por tu propio grupo (${currentUser.groupName})!`);
-          }
+        if (cat.type === 'group' && selected.toLowerCase().trim() === currentUser.groupName.toLowerCase().trim()) {
+          throw new Error(`¡No está permitido votar por tu propio grupo (${currentUser.groupName})!`);
         }
-
-        // Regla 2: En categorías individuales, NO puede votar por sí mismo
-        if (cat.type === 'individual') {
-          if (
-            selected.toLowerCase().trim() === currentUser.name.toLowerCase().trim() ||
-            selected.toLowerCase().trim() === currentUser.username.toLowerCase().trim()
-          ) {
-            throw new Error(`¡No está permitido votar por ti mismo en la categoría "${cat.title}"!`);
-          }
+        if (
+          cat.type === 'individual' &&
+          (selected.toLowerCase().trim() === currentUser.name.toLowerCase().trim() ||
+            selected.toLowerCase().trim() === currentUser.username.toLowerCase().trim())
+        ) {
+          throw new Error(`¡No está permitido votar por ti mismo en la categoría "${cat.title}"!`);
         }
       }
     }
 
+    // 1. Enviar a AWS
+    const cloudRes = await ApiService.submitVote(currentUser.id, selections);
+    if (!cloudRes.success && cloudRes.error && !cloudRes.error.includes('No se pudo conectar')) {
+      throw new Error(cloudRes.error);
+    }
+
+    // 2. Guardar en almacenamiento local
     const record: VoteRecord = {
       userId: currentUser.id,
       timestamp: new Date().toISOString(),
       selections,
     };
-
     VotingStorage.saveVote(record);
   };
 
-  // Calcular puntuación de equipos
+  // Reiniciar votos (Sincronizado en AWS + LocalStorage)
+  const clearVotesOnly = async () => {
+    // 1. Limpiar en AWS
+    await ApiService.resetVotes();
+
+    // 2. Limpiar en almacenamiento local
+    VotingStorage.clearVotesOnly();
+  };
+
   const calculateTeamScores = (): TeamScore[] => {
     const teamMap: Record<string, { totalVotes: number; byCategory: Record<string, number> }> = {};
 
-    // Obtener todos los equipos de las categorías grupales y predeterminados
     const allTeams = new Set<string>(groups);
     categories.forEach((cat) => {
       if (cat.type === 'group') {
@@ -572,7 +613,6 @@ export function useVotingState() {
       .sort((a, b) => b.totalVotes - a.totalVotes);
   };
 
-  // Calcular puntuación de participantes individuales
   const calculateIndividualScores = (): Record<string, PersonScore[]> => {
     const individualCategories = categories.filter((c) => c.type === 'individual');
     const result: Record<string, PersonScore[]> = {};
@@ -621,6 +661,6 @@ export function useVotingState() {
     calculateTeamScores,
     calculateIndividualScores,
     resetToDefault: VotingStorage.resetToDefault,
-    clearVotesOnly: VotingStorage.clearVotesOnly,
+    clearVotesOnly,
   };
 }
