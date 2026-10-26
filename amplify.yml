@@ -3,9 +3,12 @@ frontend:
   phases:
     preBuild:
       commands:
+        - nvm install 24 && nvm alias default 24 && nvm use 24
+        - node -v
         - npm ci --legacy-peer-deps --cache .npm --prefer-offline
     build:
       commands:
+        - nvm use 24 || true
         - npm run build
   artifacts:
     baseDirectory: dist
