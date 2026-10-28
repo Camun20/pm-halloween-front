@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 interface LoginModalProps {
-  onLoginWithCredentials: (username: string, password: string) => { success: boolean; error?: string };
+  onLoginWithCredentials: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -21,7 +21,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -36,11 +36,15 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
 
     setIsLoading(true);
-    const result = onLoginWithCredentials(usernameInput.trim(), passwordInput.trim());
-    setIsLoading(false);
-
-    if (!result.success) {
-      setErrorMessage(result.error || 'Credenciales incorrectas');
+    try {
+      const result = await onLoginWithCredentials(usernameInput.trim(), passwordInput.trim());
+      if (!result.success) {
+        setErrorMessage(result.error || 'Credenciales incorrectas');
+      }
+    } catch (err: any) {
+      setErrorMessage('Error al verificar credenciales: ' + (err.message || 'Intente nuevamente'));
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -212,6 +212,12 @@ export class VotingStorage {
     window.dispatchEvent(new Event('voting-storage-changed'));
   }
 
+  static saveVotes(votes: VoteRecord[]) {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEYS.VOTES, JSON.stringify(votes));
+    window.dispatchEvent(new Event('voting-storage-changed'));
+  }
+
   static saveVote(record: VoteRecord) {
     if (typeof window === 'undefined') return;
     const votes = this.getVotes();
@@ -279,14 +285,13 @@ export function useVotingState() {
     setIsLoaded(true);
   };
 
-  useEffect(() => {
-    sync();
-
-    // Sincronizar en segundo plano con AWS API Gateway
-    const fetchCloudData = async () => {
-      const [cloudCategories, cloudUsers] = await Promise.all([
+  // Sincronizar en segundo plano con AWS API Gateway (Categorías, Usuarios y Votos)
+  const fetchCloudData = async () => {
+    try {
+      const [cloudCategories, cloudUsers, cloudVotes] = await Promise.all([
         ApiService.getCategories(),
         ApiService.getUsers(),
+        ApiService.getVotes(),
       ]);
 
       if (cloudCategories && cloudCategories.length > 0) {
@@ -295,16 +300,43 @@ export function useVotingState() {
       if (cloudUsers && cloudUsers.length > 0) {
         VotingStorage.saveUsers(cloudUsers);
       }
-    };
+      if (cloudVotes && Array.isArray(cloudVotes)) {
+        VotingStorage.saveVotes(cloudVotes);
+        setVotes(cloudVotes);
+      }
+    } catch (err) {
+      console.log('AWS cloud sync notice:', err);
+    }
+  };
 
-    fetchCloudData().catch((err) => console.log('AWS cloud sync notice:', err));
+  useEffect(() => {
+    sync();
+    fetchCloudData();
+
+    // Sondeo periódico cada 6 segundos para actualización automática en vivo en todas las pantallas
+    const interval = setInterval(() => {
+      fetchCloudData();
+    }, 6000);
 
     const handleStorageChange = () => sync();
+    const handleFocus = () => fetchCloudData();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchCloudData();
+      }
+    };
+
     window.addEventListener('voting-storage-changed', handleStorageChange);
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
+      clearInterval(interval);
       window.removeEventListener('voting-storage-changed', handleStorageChange);
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
@@ -450,12 +482,15 @@ export function useVotingState() {
       selections,
     };
     VotingStorage.saveVote(record);
+    // Sincronizar inmediatamente con AWS
+    fetchCloudData().catch(() => {});
   };
 
   // Reiniciar votos (Sincronizado en AWS + LocalStorage)
   const clearVotesOnly = async () => {
     await ApiService.resetVotes();
     VotingStorage.clearVotesOnly();
+    fetchCloudData().catch(() => {});
   };
 
   const calculateTeamScores = (): TeamScore[] => {
@@ -543,5 +578,6 @@ export function useVotingState() {
     calculateIndividualScores,
     resetToDefault: VotingStorage.resetToDefault,
     clearVotesOnly,
+    refreshCloudData: fetchCloudData,
   };
 }

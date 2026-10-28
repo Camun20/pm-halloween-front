@@ -172,6 +172,22 @@ export class ApiService {
     }
   }
 
+  // 7.1 Obtener todos los votos registrados en AWS (para sincronización multi-navegador)
+  static async getVotes(): Promise<VoteRecord[] | null> {
+    try {
+      const res = await fetch(`${API_URL}/votes`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.votes || [];
+    } catch (err) {
+      console.warn('Error al obtener votos desde API:', err);
+      return null;
+    }
+  }
+
   // 8. Reiniciar Votos (Admin)
   static async resetVotes(): Promise<{ success: boolean; message?: string; error?: string }> {
     try {

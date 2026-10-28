@@ -25,6 +25,7 @@ export const MainApp: React.FC = () => {
     calculateIndividualScores,
     clearVotesOnly,
     resetToDefault,
+    refreshCloudData,
   } = useVotingState();
 
   const [currentTab, setCurrentTab] = useState<'voting' | 'scoreboard' | 'admin'>('voting');
@@ -92,6 +93,9 @@ export const MainApp: React.FC = () => {
               onSelectTab={(tab) => {
                 if (tab === 'admin' && currentUser.role !== 'admin') return;
                 if (tab === 'scoreboard' && currentUser.role !== 'admin' && currentUser.role !== 'gh') return;
+                if (tab === 'scoreboard') {
+                  refreshCloudData();
+                }
                 setCurrentTab(tab);
               }}
               onLogout={logout}
