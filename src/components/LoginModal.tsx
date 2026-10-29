@@ -103,7 +103,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   required
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="ej: admin, carolina.gh, carlos.dev..."
+                  placeholder="Ingrese su usuario"
                   className="w-full bg-[#0d0617] border border-purple-800/70 rounded-xl pl-9 pr-3 py-2 sm:py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
                 />
               </div>
@@ -124,7 +124,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   required
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="Ingresa tu contraseña..."
+                  placeholder="Ingrese su contraseña..."
                   className="w-full bg-[#0d0617] border border-purple-800/70 rounded-xl pl-9 pr-10 py-2 sm:py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-colors"
                 />
                 <button
