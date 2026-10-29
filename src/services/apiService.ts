@@ -56,7 +56,7 @@ export class ApiService {
       };
     } catch (err: any) {
       console.warn('Fallo de red en login con API Gateway, verificando modo contingencia:', err);
-      return { success: false, error: 'No se pudo conectar con el servidor AWS: ' + err.message };
+      return { success: false, error: 'No se pudo conectar con el servidor. Intente nuevamente.' };
     }
   }
 
@@ -94,7 +94,7 @@ export class ApiService {
       });
       const data = await res.json();
       if (!res.ok) {
-        return { success: false, error: data.error || 'Error al crear usuario en AWS' };
+        return { success: false, error: data.error || 'Error al crear usuario' };
       }
       return { success: true, user: data.user };
     } catch (err: any) {
@@ -146,7 +146,7 @@ export class ApiService {
       });
       const data = await res.json();
       if (!res.ok) {
-        return { success: false, error: data.error || 'Error al guardar categoría en AWS' };
+        return { success: false, error: data.error || 'Error al guardar categoría' };
       }
       return { success: true, category: data.category };
     } catch (err: any) {
@@ -164,7 +164,7 @@ export class ApiService {
       });
       const data = await res.json();
       if (!res.ok) {
-        return { success: false, error: data.error || 'Error al registrar voto en AWS' };
+        return { success: false, error: data.error || 'Error al registrar voto' };
       }
       return { success: true };
     } catch (err: any) {
@@ -198,7 +198,7 @@ export class ApiService {
       });
       const data = await res.json();
       if (!res.ok) {
-        return { success: false, error: data.error || 'Error al limpiar votos en AWS' };
+        return { success: false, error: data.error || 'Error al limpiar votos' };
       }
       return { success: true, message: data.message };
     } catch (err: any) {

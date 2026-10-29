@@ -87,7 +87,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       avatar: randomAvatar,
     });
 
-    setUserSuccessMessage(`Usuario @${newUsername.trim()} creado con éxito para "${assignedGroup}". Guardado en LocalStorage.`);
+    setUserSuccessMessage(`Usuario @${newUsername.trim()} creado con éxito para "${assignedGroup}".`);
     setNewUsername('');
     setNewName('');
     setNewPassword('123');
@@ -145,7 +145,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       icon: catType === 'group' ? '🏰' : '👑',
     });
 
-    setCatSuccessMessage(`Categoría "${catTitle.trim()}" guardada con ${optionsList.length} opciones en LocalStorage.`);
+    setCatSuccessMessage(`Categoría "${catTitle.trim()}" guardada con ${optionsList.length} opciones.`);
     setCatTitle('');
     setCatDesc('');
     setCatOptionsText('');
@@ -175,7 +175,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-0.5 rounded-full">
-              <Database className="w-3 h-3 text-emerald-400" /> Guardado activo en LocalStorage (Pre-migración AWS)
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Sistema en línea
             </span>
           </div>
         </div>
@@ -368,7 +368,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               type="submit"
               className="w-full py-3 rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold text-xs shadow-spooky-orange transition-all"
             >
-              Guardar Usuario en LocalStorage 🎃
+              Guardar Usuario 🎃
             </button>
           </form>
         </div>
@@ -531,7 +531,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               type="submit"
               className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-700 to-purple-600 hover:from-purple-600 hover:to-purple-500 text-white font-bold text-xs shadow-spooky-purple transition-all"
             >
-              Crear Categoría y Guardar en LocalStorage
+              Crear Categoría 🎃
             </button>
           </form>
         </div>

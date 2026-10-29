@@ -155,7 +155,7 @@ export const MainApp: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
             <p>© 2026 Halloween Awards • Sistema Oficial de Votación</p>
             <p className="text-[11px] text-gray-500">
-              🎃 Guardado en LocalStorage • Listo para migración y despliegue AWS
+              🎃 Concurso de Disfraces y Decoración • Atiempo
             </p>
           </div>
         </footer>

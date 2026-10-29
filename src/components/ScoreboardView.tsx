@@ -304,7 +304,7 @@ export const ScoreboardView: React.FC<ScoreboardViewProps> = ({
       {activeTab === 'individuals' && (
         <div className="space-y-8 animate-in fade-in duration-300">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {categories
               .filter((c) => c.type === 'individual')
               .map((cat) => {
@@ -314,7 +314,7 @@ export const ScoreboardView: React.FC<ScoreboardViewProps> = ({
                 return (
                   <div
                     key={cat.id}
-                    className="bg-[#160b26]/90 border border-purple-900/60 rounded-3xl p-6 shadow-xl space-y-5 flex flex-col justify-between"
+                    className="bg-[#160b26]/90 border border-purple-900/60 rounded-3xl p-6 shadow-xl space-y-5 flex flex-col justify-start"
                   >
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
@@ -358,18 +358,24 @@ export const ScoreboardView: React.FC<ScoreboardViewProps> = ({
                     {/* Lista de todos los candidatos de esta categoría */}
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-purple-300">Ranking de Candidatos:</p>
-                      {candidates.map((cand, i) => (
-                        <div
-                          key={cand.personName}
-                          className="flex items-center justify-between p-2.5 rounded-xl bg-[#1b0d30]/70 border border-purple-950 text-xs"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-400 font-bold w-4">#{i + 1}</span>
-                            <span className="text-gray-200 font-medium">{cand.personName}</span>
+                      {candidates.length > 0 ? (
+                        candidates.map((cand, i) => (
+                          <div
+                            key={cand.personName}
+                            className="flex items-center justify-between p-2.5 rounded-xl bg-[#1b0d30]/70 border border-purple-950 text-xs"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-400 font-bold w-4">#{i + 1}</span>
+                              <span className="text-gray-200 font-medium">{cand.personName}</span>
+                            </div>
+                            <span className="font-bold text-orange-400">{cand.votes} votos</span>
                           </div>
-                          <span className="font-bold text-orange-400">{cand.votes} votos</span>
-                        </div>
-                      ))}
+                        ))
+                      ) : (
+                        <p className="text-xs text-purple-300/50 italic py-2">
+                          No hay candidatos registrados en esta categoría
+                        </p>
+                      )}
                     </div>
 
                   </div>
